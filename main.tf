@@ -4,6 +4,7 @@ resource "azurerm_virtual_machine" "qas_web_disp" {
   name                = var.web_disp_vm_names[count.index]
   location            = var.resource_location
   resource_group_name = data.azurerm_resource_group.sap_nprd.name
+  availability_set_id = azurerm_availability_set.qas_web_disp_set.id
   network_interface_ids = [
     azurerm_network_interface.qas_web_disp[count.index].id,
   ]
@@ -32,7 +33,8 @@ resource "azurerm_virtual_machine" "qas_web_disp" {
   }
 
   depends_on = [
-    azurerm_network_interface.qas_web_disp
+    azurerm_network_interface.qas_web_disp,
+    azurerm_availability_set.qas_web_disp_set
   ]
 }
 
@@ -57,4 +59,11 @@ data azurerm_subnet "sap_qas_app_snet" {
   name                 = "sap_qas_app_snet"
   resource_group_name  = data.azurerm_resource_group.sap_nprd.name
   virtual_network_name = "sap_qas_vnet"
+}
+resource "azurerm_availability_set" "qas_web_disp_set" {
+  name                = "qas_web_disp_set"
+  location            = var.resource_location
+  resource_group_name = data.azurerm_resource_group.sap_nprd.name
+  platform_fault_domain_count = 3
+  platform_update_domain_count = 3  
 }
