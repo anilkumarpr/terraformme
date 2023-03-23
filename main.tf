@@ -1,22 +1,30 @@
+
 resource "azurerm_virtual_machine" "qas_web_disp" {
   count=length(var.web_disp_vm_names)
   name                = var.web_disp_vm_names[count.index]
-  resource_group_name = local.resource_group
   location            = var.resource_location
-  size                = "Standard_D2s_v3"
-  admin_username      = "linuxusr"
-  admin_password      = "Azure@123"
-  disable_password_authentication = false
+  resource_group_name = data.azurerm_resource_group.sap_nprd.name
   network_interface_ids = [
-    azurerm_network_interface.qas_web_disp.id,
+    azurerm_network_interface.qas_web_disp[count.index].id,
   ]
+  vm_size             = "Standard_D2s_v3"
+   storage_os_disk {
+        name              = "${var.web_disp_vm_names[count.index]}-osdisk"
+        caching           = "ReadWrite"
+        create_option     = "Empty"
+        managed_disk_type = "Premium_LRS"
+        disk_size_gb      = "100"
+      }
+      os_profile {
+        computer_name  = var.web_disp_vm_names[count.index]
+        admin_username = "testadmin"
+        admin_password = "Password1234!"
+      }
+      os_profile_linux_config {
+        disable_password_authentication = false
+      }
 
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
-
-  source_image_reference {
+  storage_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "18.04-LTS"
@@ -32,7 +40,7 @@ resource "azurerm_network_interface" "qas_web_disp" {
     count= length(var.web_disp_vm_names)
     name = "nic-${var.web_disp_vm_names[count.index]}"
     location            = var.resource_location
-    resource_group_name = local.resource_group
+    resource_group_name = data.azurerm_resource_group.sap_nprd.name
 
   ip_configuration {
     name                          = "internal"
@@ -42,8 +50,11 @@ resource "azurerm_network_interface" "qas_web_disp" {
   
 }
 
-data "azurerm_subnet" "sap_qas_app_snet" {
+data azurerm_resource_group "sap_nprd"{
+    name= "sap_nprd"
+}
+data azurerm_subnet "sap_qas_app_snet" {
   name                 = "sap_qas_app_snet"
-  resource_group_name  = local.resource_group
+  resource_group_name  = data.azurerm_resource_group.sap_nprd.name
   virtual_network_name = "sap_qas_vnet"
 }
